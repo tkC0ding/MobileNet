@@ -1,9 +1,12 @@
+import os
 import torch
 from torch import nn
 from DATA_LOAD import data_loading
 from torchvision.transforms import transforms, ToTensor, Normalize
 from torch.utils.data import random_split, DataLoader
 from BLOCKS import InvertedResidualBlock, SSDhead, ClassificationBlock, KeypointBlock
+
+os.mkdir('Checkpoints')
 
 image_dir = "data"
 annotations_dir = "annotations/data1_data2_annotations.xml"
@@ -148,3 +151,6 @@ for epoch in range(epochs):
     avg_val_loss = val_loss_sum/n
     val_classification_acc = val_classification_true/n
     print(f"Validation Loss : {avg_val_loss}\tValidation Classification Accuracy : {val_classification_acc}")
+    os.mkdir(f"Checkpoints/model_{epoch}")
+    torch.save(model, f'Checkpoints/model_{epoch}/entire_model_{epoch}.pth')
+    torch.save(model.state_dict(), f'Checkpoints/model_{epoch}/model_weights_{epoch}.pth')
