@@ -7,7 +7,7 @@ from BLOCKS import InvertedResidualBlock, SSDhead, ClassificationBlock, Keypoint
 
 image_dir = "data"
 annotations_dir = "annotations/data1_data2_annotations.xml"
-batch_size = 2
+batch_size = 5
 epochs = 10
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -94,13 +94,22 @@ cross_entropy_loss = nn.BCEWithLogitsLoss()
 
 optimizer = torch.optim.Adam(model.parameters(), 0.001)
 for epoch in range(epochs):
+    loss_sum = 0
+    classification_true = 0
+    keypoint_acc = 0
+    n = len(batch_size) * batch_size
+    model.train()
     for img, label, keypoints in train_loader:
         img, label, keypoints = img.to(device), label.to(device), keypoints.to(device)
 
         label_pred, keypoints_pred = model(img)
         label_pred = label_pred.flatten()
+        l = torch.round(label_pred)
+        classification_true += (l == label).to(torch.int32).sum().item()
 
         classification_loss = cross_entropy_loss(label_pred, label)
+        
+        keypoint_acc += ((keypoints - keypoints_pred)/keypoints)
 
         if(not torch.all(keypoints == 0).item()):
             keypoint_loss = mse_loss(keypoints_pred, keypoints)
@@ -108,8 +117,12 @@ for epoch in range(epochs):
         else:
             total_loss = classification_loss
         
+        loss_sum += total_loss.item()
 
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
-    print(epoch)
+    avg_loss = loss_sum/n
+    classification_acc = classification_true/n
+
+    print(f"Epoch : {epoch}\tavg_loss : {avg_loss}\tclassification accuracy : {classification_acc}")
