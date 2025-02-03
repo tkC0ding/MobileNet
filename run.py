@@ -7,7 +7,7 @@ from BLOCKS import InvertedResidualBlock, SSDhead, ClassificationBlock, Keypoint
 
 image_dir = "data"
 annotations_dir = "annotations/data1_data2_annotations.xml"
-batch_size = 10
+batch_size = 100
 epochs = 10
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -50,16 +50,17 @@ class MobileNetSSDv2(nn.Module):
         self.BottleNeck14 = InvertedResidualBlock(160, 160, 1, 6)
         self.BottleNeck15 = InvertedResidualBlock(160, 320, 1, 6)
 
-        self.ssdhead = SSDhead(1280, 128)
+        self.ssdhead = SSDhead(320, 128)
 
         self.flatten = nn.Flatten()
 
-        self.classification = ClassificationBlock(1920, 1)
+        self.classification = ClassificationBlock(768, 1)
 
-        self.keypoints = KeypointBlock(1920)
+        self.keypoints = KeypointBlock(768)
 
     def forward(self, x):
         out = self.initial_convolution(x)
+        
 
         out = self.BottleNeck1(out)
         out = self.BottleNeck2(out)
@@ -86,17 +87,18 @@ class MobileNetSSDv2(nn.Module):
 
         return (classification_out, keypoint_out)
 
-model = MobileNetSSDv2()
+model = MobileNetSSDv2().to(device)
 
 mse_loss = nn.MSELoss()
-cross_entropy_loss = nn.CrossEntropyLoss()
+cross_entropy_loss = nn.BCEWithLogitsLoss()
 
 optimizer = torch.optim.Adam(model.parameters(), 0.001)
-
 for epoch in range(epochs):
     for img, label, keypoints in train_loader:
+        img, label, keypoints = img.to(device), label.to(device), keypoints.to(device)
 
         label_pred, keypoints_pred = model(img)
+        label_pred = label_pred.flatten()
 
         classification_loss = cross_entropy_loss(label_pred, label)
 
@@ -106,7 +108,8 @@ for epoch in range(epochs):
         else:
             total_loss = classification_loss
         
+        
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
-    print("epoch :", epoch)
+    print(epoch)

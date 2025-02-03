@@ -30,8 +30,8 @@ class data_loading(Dataset):
         label = annotation['label']
         img = Image.open(f"{self.image_dir}/{filename}")
 
-        label = torch.tensor(self.label_to_int(label), dtype=torch.float64)
-        keypoints = torch.tensor(keypoints, dtype=torch.float64)
+        label = torch.tensor(self.label_to_int(label), dtype=torch.float32)
+        keypoints = torch.tensor(keypoints, dtype=torch.float32)
 
         if self.transforms != None:
             img = self.transforms(img)

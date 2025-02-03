@@ -28,8 +28,8 @@ class InvertedResidualBlock(nn.Module):
         initial = x
 
         out = self.expand(x)
-        out = self.depthwise(x)
-        out = self.out(x)
+        out = self.depthwise(out)
+        out = self.out(out)
 
         if self.skip_connection:
             out += initial

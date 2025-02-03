@@ -10,10 +10,10 @@ def xml_parse(xml_file):
         filename = img.get("name")
         point = img.find("points")
         if point != None:
-            kp = np.array([i.split(',') for i in point.get("points").split(';')]).flatten().astype(np.float32).tolist()
+            kp = np.array([i.split(',') for i in point.get("points").split(';')]).flatten().astype(np.float16).astype(np.int16).tolist()
             l = "Gate"
         else:
-            kp = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            kp = [0, 0, 0, 0, 0, 0, 0, 0]
             l = "No-Gate"
         
         annotations.append({
