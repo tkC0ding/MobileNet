@@ -1,18 +1,18 @@
 import torch
 from torch import nn
 from DATA_LOAD import data_loading
-from torchvision.transforms import ToTensor
+from torchvision.transforms import transforms, ToTensor, Normalize
 from torch.utils.data import random_split, DataLoader
 from BLOCKS import InvertedResidualBlock, SSDhead, ClassificationBlock, KeypointBlock
 
 image_dir = "data"
 annotations_dir = "annotations/data1_data2_annotations.xml"
-batch_size = 100
+batch_size = 2
 epochs = 10
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-dataset = data_loading(image_dir, annotations_dir, ToTensor())
+dataset = data_loading(image_dir, annotations_dir,ToTensor())
 
 train_size = int(0.7 * len(dataset)) + 2
 test_size = int(0.1 * len(dataset))
@@ -102,13 +102,13 @@ for epoch in range(epochs):
 
         classification_loss = cross_entropy_loss(label_pred, label)
 
-        if(keypoints.numel() > 0):
+        if(not torch.all(keypoints == 0).item()):
             keypoint_loss = mse_loss(keypoints_pred, keypoints)
             total_loss = classification_loss + keypoint_loss
         else:
             total_loss = classification_loss
         
-        
+
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
