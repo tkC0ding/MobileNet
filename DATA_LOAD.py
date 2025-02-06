@@ -29,6 +29,7 @@ class data_loading(Dataset):
         keypoints = annotation['keypoints']
         label = annotation['label']
         img = Image.open(f"{self.image_dir}/{filename}")
+        img = img.resize((224, 224))
 
         label = torch.tensor(self.label_to_int(label), dtype=torch.float32)
         keypoints = torch.tensor(keypoints, dtype=torch.float32)
