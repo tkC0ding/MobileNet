@@ -6,6 +6,11 @@ from torchvision.transforms import transforms, ToTensor, Normalize
 from torch.utils.data import random_split, DataLoader
 from BLOCKS import InvertedResidualBlock, SSDhead, ClassificationBlock, KeypointBlock, Backbone
 
+transform = transforms.Compose(
+    [transforms.ToTensor(),
+    transforms.Normalize([0.5, 0.5, 0.5], [0.5,0.5,0.5])]
+)
+
 os.mkdir('Checkpoints')
 
 image_dir = "data"
@@ -15,7 +20,7 @@ epochs = 10
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-dataset = data_loading(image_dir, annotations_dir,ToTensor())
+dataset = data_loading(image_dir, annotations_dir,transforms=transform)
 
 train_size = int(0.7 * len(dataset)) + 2
 test_size = int(0.1 * len(dataset))
