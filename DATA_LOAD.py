@@ -24,7 +24,7 @@ class data_loading(Dataset):
         l_n = {"No-Gate" : 0, "Gate" : 1}
         return l_n[label]
     
-    def filter(self, img):
+    def filters(self, img):
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         b, g, r = cv2.split(img_rgb)
         b = cv2.normalize(b, None, 0, 255, cv2.NORM_MINMAX)
@@ -52,7 +52,7 @@ class data_loading(Dataset):
         img = Image.open(f"{self.image_dir}/{filename}")
         img = img.resize((224, 224))
         img = np.array(img)
-        img = filter(img)
+        img = self.filters(img)
 
 
         label = torch.tensor(self.label_to_int(label), dtype=torch.float32)
