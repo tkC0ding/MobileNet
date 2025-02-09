@@ -17,6 +17,7 @@ image_dir = "data"
 annotations_dir = "annotations/data1_data2_annotations.xml"
 batch_size = 5
 epochs = 10
+alpha = 0.5
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -60,7 +61,6 @@ cross_entropy_loss = nn.BCEWithLogitsLoss()
 optimizer = torch.optim.Adam(model.parameters(), 0.001)
 for epoch in range(epochs):
     loss_sum = 0
-    classification_true = 0
     n = len(train_loader) * batch_size
     model.train()
     for img, label, keypoints in train_loader:
@@ -68,14 +68,12 @@ for epoch in range(epochs):
 
         label_pred, keypoints_pred = model(img)
         label_pred = label_pred.flatten()
-        l = torch.round(label_pred)
-        classification_true += (l == label).to(torch.int32).sum().item()
 
         classification_loss = cross_entropy_loss(label_pred, label)
 
         if(not torch.all(keypoints == 0).item()):
             keypoint_loss = mse_loss(keypoints_pred, keypoints)
-            total_loss = classification_loss + keypoint_loss
+            total_loss = (alpha*classification_loss) + ((1 - alpha)*keypoint_loss)
         else:
             total_loss = classification_loss
         
@@ -85,21 +83,17 @@ for epoch in range(epochs):
         total_loss.backward()
         optimizer.step()
     avg_loss = loss_sum/n
-    classification_acc = classification_true/n
 
-    print(f"Epoch : {epoch}\tavg_loss : {avg_loss}\tclassification accuracy : {classification_acc}")
+    print(f"Epoch : {epoch}\tavg_loss : {avg_loss}")
 
     model.eval()
     val_loss_sum = 0
-    val_classification_true = 0
     with torch.no_grad():
         for img, label, keypoints in val_loader:
             img, label, keypoints = img.to(device), label.to(device), keypoints.to(device)
 
             label_pred, keypoints_pred = model(img)
             label_pred = label_pred.flatten()
-            l = torch.round(label_pred)
-            val_classification_true += (l == label).to(torch.int32).sum().item()
 
             val_classification_loss = cross_entropy_loss(label_pred, label)
 
@@ -112,8 +106,7 @@ for epoch in range(epochs):
             val_loss_sum += total_loss
 
         avg_val_loss = val_loss_sum/n
-        val_classification_acc = val_classification_true/n
-        print(f"Validation Loss : {avg_val_loss}\tValidation Classification Accuracy : {val_classification_acc}")
+        print(f"Validation Loss : {avg_val_loss}")
     os.mkdir(f"Checkpoints/model_{epoch}")
     torch.save(model, f'Checkpoints/model_{epoch}/entire_model_{epoch}.pth')
     torch.save(model.state_dict(), f'Checkpoints/model_{epoch}/model_weights_{epoch}.pth')
