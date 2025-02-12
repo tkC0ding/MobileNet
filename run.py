@@ -110,3 +110,24 @@ for epoch in range(epochs):
     os.mkdir(f"Checkpoints/model_{epoch}")
     torch.save(model, f'Checkpoints/model_{epoch}/entire_model_{epoch}.pth')
     torch.save(model.state_dict(), f'Checkpoints/model_{epoch}/model_weights_{epoch}.pth')
+
+with torch.no_grad():
+    model.eval()
+    test_loss = 0
+    n = len(test_loader)
+    for img, label, keypoints in test_loader:
+        label_pred, keypoints_pred = model(img)
+        label_pred = label_pred.flatten()
+
+        val_classification_loss = cross_entropy_loss(label_pred, label)
+
+        if(not torch.all(keypoints == 0).item()):
+            keypoint_loss = mse_loss(keypoints_pred, keypoints)
+            total_loss = val_classification_loss + keypoint_loss
+        else:
+            total_loss = val_classification_loss
+        
+        test_loss += total_loss
+
+    avg_val_loss = test_loss/n
+    print(f"Average testing loss : {avg_val_loss}")
