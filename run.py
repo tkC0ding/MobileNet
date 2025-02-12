@@ -11,7 +11,10 @@ transform = transforms.Compose(
     transforms.Normalize([0.5, 0.5, 0.5], [0.5,0.5,0.5])]
 )
 
-os.mkdir('Checkpoints')
+if os.path.isdir('Checkpoints'):
+    print("Checkpoints folder already exists!")
+else:
+    os.mkdir('Checkpoints')
 
 image_dir = "data"
 annotations_dir = "annotations/data1_data2_annotations.xml"
