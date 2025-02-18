@@ -11,13 +11,10 @@ transform = transforms.Compose(
     transforms.Normalize([0.5, 0.5, 0.5], [0.5,0.5,0.5])]
 )
 
-if os.path.isdir('Checkpoints'):
-    print("Checkpoints folder already exists!")
-else:
-    os.mkdir('Checkpoints')
+os.mkdir('Checkpoints')
 
 image_dir = "data"
-annotations_dir = "annotations/data1_data2_annotations.xml"
+annotations_dir = "annotations/modified_annotations.xml"
 batch_size = 5
 epochs = 10
 alpha = 0.5
@@ -25,8 +22,7 @@ alpha = 0.5
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 dataset = data_loading(image_dir, annotations_dir,transforms=transform)
-
-train_size = int(0.7 * len(dataset)) + 2
+train_size = int(0.7 * len(dataset))
 test_size = int(0.1 * len(dataset))
 val_size = int(0.2 * len(dataset))
 
@@ -51,7 +47,7 @@ class MobileNetSSDv2(nn.Module):
         out = self.backbone(x)
         out = self.ssdhead(out)
         pick_off = self.flatten(out)
-        classification_out = self.classification(pick_off)
+        classification_out   = self.classification(pick_off)
         keypoint_out = self.keypoints(pick_off)
 
         return (classification_out, keypoint_out)
@@ -61,7 +57,7 @@ model = MobileNetSSDv2().to(device)
 mse_loss = nn.MSELoss()
 cross_entropy_loss = nn.BCEWithLogitsLoss()
 
-optimizer = torch.optim.Adam(model.parameters(), 0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=5e-4)  # weight_decay adds L2 regularization
 for epoch in range(epochs):
     loss_sum = 0
     n = len(train_loader) * batch_size
@@ -85,9 +81,11 @@ for epoch in range(epochs):
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
+
+
     avg_loss = loss_sum/n
 
-    print(f"Epoch : {epoch}\tavg_loss : {avg_loss}")
+    print(f"Epoch : {epoch}\tavg_loss : {avg_loss}\t")
 
     model.eval()
     val_loss_sum = 0
@@ -109,28 +107,7 @@ for epoch in range(epochs):
             val_loss_sum += total_loss
 
         avg_val_loss = val_loss_sum/n
-        print(f"Validation Loss : {avg_val_loss}")
+        print(f"Validation Loss : {avg_val_loss}\t")
     os.mkdir(f"Checkpoints/model_{epoch}")
     torch.save(model, f'Checkpoints/model_{epoch}/entire_model_{epoch}.pth')
     torch.save(model.state_dict(), f'Checkpoints/model_{epoch}/model_weights_{epoch}.pth')
-
-with torch.no_grad():
-    model.eval()
-    test_loss = 0
-    n = len(test_loader)
-    for img, label, keypoints in test_loader:
-        label_pred, keypoints_pred = model(img)
-        label_pred = label_pred.flatten()
-
-        val_classification_loss = cross_entropy_loss(label_pred, label)
-
-        if(not torch.all(keypoints == 0).item()):
-            keypoint_loss = mse_loss(keypoints_pred, keypoints)
-            total_loss = val_classification_loss + keypoint_loss
-        else:
-            total_loss = val_classification_loss
-        
-        test_loss += total_loss
-
-    avg_val_loss = test_loss/n
-    print(f"Average testing loss : {avg_val_loss}")

@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 import numpy as np
 
-def xml_parse(xml_file):
+def xml_parse(xml_file,target_points=8):
     tree = ET.parse(xml_file)
     root = tree.getroot()
 
@@ -10,11 +10,12 @@ def xml_parse(xml_file):
         filename = img.get("name")
         point = img.find("points")
         if point != None:
-            kp = np.array([i.split(',') for i in point.get("points").split(';')]).flatten().astype(np.float32)
-            kp[np.arange(len(kp)) % 2 == 0] = kp[np.arange(len(kp)) % 2 == 0]/640
-            kp[np.arange(len(kp)) % 2 != 0] = kp[np.arange(len(kp)) % 2 != 0]/480
-            kp = kp.tolist()
-            l = "Gate"
+            if len(point)==target_points:
+                kp = np.array([i.split(',') for i in point.get("points").split(';')]).flatten().astype(np.float32)
+                kp[np.arange(len(kp)) % 2 == 0] = kp[np.arange(len(kp)) % 2 == 0]/640
+                kp[np.arange(len(kp)) % 2 != 0] = kp[np.arange(len(kp)) % 2 != 0]/480
+                kp = kp.tolist()
+                l = "Gate"
         else:
             kp = [0, 0, 0, 0, 0, 0, 0, 0]
             l = "No-Gate"

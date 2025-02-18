@@ -48,18 +48,22 @@ class SSDhead(nn.Module):
             nn.Conv2d(in_channels, 1280, 1, 1, bias=False),
             nn.BatchNorm2d(1280),
             nn.ReLU6(inplace=True),
+            nn.Dropout2d(0.5),  # Dropout for conv layers
 
             nn.Conv2d(1280, 512, 1, 1, bias=False, padding=0),
             nn.BatchNorm2d(512),
             nn.ReLU6(inplace=True),
+            nn.Dropout2d(0.5),  # Dropout for conv layers
 
             nn.Conv2d(512, 256, 3, 2, bias=False, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU6(inplace=True),
+            nn.Dropout2d(0.5),  # Dropout for conv layers
 
             nn.Conv2d(256, 256, 1, 1, bias=False, padding=0),
             nn.BatchNorm2d(256),
             nn.ReLU6(inplace=True),
+            nn.Dropout2d(0.5),  # Dropout for conv layers
 
             nn.Conv2d(256, out_channels, 3, 2, bias=False, padding=1),
             nn.BatchNorm2d(out_channels),
@@ -77,14 +81,17 @@ class ClassificationBlock(nn.Module):
             nn.Linear(in_channels, 512, bias=False),
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
+            nn.Dropout(0.6), #Added Dropouts
 
             nn.Linear(512, 256, bias=False),
             nn.BatchNorm1d(256),
             nn.ReLU(inplace=True),
+            nn.Dropout(0.6), #Added Dropouts
 
             nn.Linear(256, 128, bias=False),
             nn.BatchNorm1d(128),
             nn.ReLU(inplace=True),
+            nn.Dropout(0.6), #Added Dropouts
 
             nn.Linear(128, num_classes, bias=True)
         )
@@ -100,14 +107,17 @@ class KeypointBlock(nn.Module):
             nn.Linear(in_channels, 512, bias=False),
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
+            nn.Dropout(0.6), #Added Dropouts
 
             nn.Linear(512, 256, bias=False),
             nn.BatchNorm1d(256),
             nn.ReLU(inplace=True),
+            nn.Dropout(0.6), #Added Dropouts
 
             nn.Linear(256, 128, bias=False),
             nn.BatchNorm1d(128),
             nn.ReLU(inplace=True),
+            nn.Dropout(0.6), #Added Dropouts
 
             nn.Linear(128, 8, bias=False),
         )
