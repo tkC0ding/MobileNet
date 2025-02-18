@@ -14,7 +14,7 @@ class data_loading(Dataset):
 
     
     def load_annotations(self):
-        annotations = xml_parse(self.annotations_dir)
+        annotations = xml_parse(self.annotations_dir,target_points=8)
         return annotations
     
     def __len__(self):
