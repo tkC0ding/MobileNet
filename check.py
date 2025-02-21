@@ -1,29 +1,73 @@
-import os
 import torch
 from torch import nn
-from DATA_LOAD import data_loading
-from torchvision.transforms import transforms, ToTensor, Normalize
-from torch.utils.data import random_split, DataLoader
+from torchvision import transforms
+import cv2
 from BLOCKS import InvertedResidualBlock, SSDhead, ClassificationBlock, KeypointBlock, Backbone
 
-transform = transforms.Compose(
-    [transforms.ToTensor(),
-    transforms.Normalize([0.5, 0.5, 0.5], [0.5,0.5,0.5])]
-)
+# Class labels
+classes = ['Gate', 'Background']
 
-image_dir = "data"
-annotations_dir = "annotations/data_1.xml"
-batch_size = 5
-epochs = 10
-alpha = 0.5
+class MobileNetSSDv2(nn.Module):
+    def __init__(self):
+        super().__init__()
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.backbone = Backbone()
+        self.ssdhead = SSDhead(1000, 128)
+        self.flatten = nn.Flatten()
+        self.classification = ClassificationBlock(128, 2)
+        self.keypoints = KeypointBlock(128)
 
-dataset = data_loading(image_dir, annotations_dir,transforms=transform)
-print(len(dataset))
-train_size = int(0.7 * len(dataset))
-test_size = int(0.1 * len(dataset))
-val_size = int(0.2 * len(dataset))
-print(train_size)
-print(test_size)
-print(val_size)
+    def forward(self, x):
+        out = self.backbone(x)
+        out = self.ssdhead(out)
+        pick_off = self.flatten(out)
+        classification_out = self.classification(pick_off)
+        keypoint_out = self.keypoints(pick_off)
+
+        return (classification_out, keypoint_out)
+
+# Load model weights
+PATH = "Checkpoints/model_9/model_weights_9.pth"
+model = MobileNetSSDv2()
+model.load_state_dict(torch.load(PATH, map_location=torch.device('cpu')))
+model.eval()
+from PIL import Image
+# Image preprocessing function
+def filters(img):
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    b, g, r = cv2.split(img_rgb)
+    
+    b = cv2.normalize(b, None, 0, 255, cv2.NORM_MINMAX)
+    g = cv2.normalize(g, None, 0, 255, cv2.NORM_MINMAX)
+    r = cv2.normalize(r, None, 0, 255, cv2.NORM_MINMAX)
+
+    img_corrected = cv2.merge((b, g, r))
+    
+    lab = cv2.cvtColor(img_corrected, cv2.COLOR_RGB2Lab)
+    l_channel, a_channel, b_channel = cv2.split(lab)
+
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(10, 50))
+    cl = clahe.apply(l_channel)
+
+    lab_corrected = cv2.merge((cl, a_channel, b_channel))
+    img_enhanced = cv2.cvtColor(lab_corrected, cv2.COLOR_Lab2BGR)
+
+    return img_enhanced
+
+# Define image transformation pipeline
+transform = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+])
+img_path = "data/frame_00295.png"
+img = cv2.imread(img_path)
+img = filters(img)
+input_tensor = transform(img).unsqueeze(0)
+
+with torch.no_grad():
+    label, keypoints = model(input_tensor)
+    label_prob = torch.softmax(label, dim=1)
+    print("Label probabilities:", label_prob)
+    print("Keypoints:", keypoints.flatten().tolist())
